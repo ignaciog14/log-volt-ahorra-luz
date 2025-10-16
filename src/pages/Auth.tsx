@@ -1,0 +1,171 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import logo from "@/assets/logo.png";
+
+const Auth = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    // TODO: Implement authentication with Lovable Cloud
+    setTimeout(() => setIsLoading(false), 1000);
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    // TODO: Implement registration with Lovable Cloud
+    setTimeout(() => setIsLoading(false), 1000);
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="flex flex-col items-center gap-4">
+          <Link to="/">
+            <img src={logo} alt="LogVolt" className="h-12 w-auto" />
+          </Link>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Bienvenido a LogVolt</h1>
+            <p className="text-muted-foreground">Controla tu consumo eléctrico</p>
+          </div>
+        </div>
+
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
+            <TabsTrigger value="register">Registrarse</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="login">
+            <Card>
+              <CardHeader>
+                <CardTitle>Iniciar Sesión</CardTitle>
+                <CardDescription>
+                  Ingresa tus credenciales para acceder a tu cuenta
+                </CardDescription>
+              </CardHeader>
+              <form onSubmit={handleLogin}>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">Email</Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">Contraseña</Label>
+                    <Input
+                      id="login-password"
+                      type="password"
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-col gap-4">
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
+                  </Button>
+                  <Button type="button" variant="link" className="text-sm">
+                    ¿Olvidaste tu contraseña?
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="register">
+            <Card>
+              <CardHeader>
+                <CardTitle>Crear Cuenta</CardTitle>
+                <CardDescription>
+                  Regístrate para comenzar a controlar tu consumo
+                </CardDescription>
+              </CardHeader>
+              <form onSubmit={handleRegister}>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="register-firstname">Nombre</Label>
+                      <Input
+                        id="register-firstname"
+                        placeholder="Juan"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="register-lastname">Apellido</Label>
+                      <Input
+                        id="register-lastname"
+                        placeholder="Pérez"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="register-email">Email</Label>
+                    <Input
+                      id="register-email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="register-phone">Teléfono (opcional)</Label>
+                    <Input
+                      id="register-phone"
+                      type="tel"
+                      placeholder="+56 9 1234 5678"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="register-password">Contraseña</Label>
+                    <Input
+                      id="register-password"
+                      type="password"
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="register-confirm">Confirmar Contraseña</Label>
+                    <Input
+                      id="register-confirm"
+                      type="password"
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        <div className="text-center text-sm text-muted-foreground">
+          <Link to="/" className="hover:text-primary underline">
+            Volver al inicio
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Auth;
