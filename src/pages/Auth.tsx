@@ -1,27 +1,65 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/logo.png";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const { signIn, signUp, user } = useAuth();
+  const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement authentication with Lovable Cloud
-    setTimeout(() => setIsLoading(false), 1000);
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    try {
+      await signIn(email, password);
+    } catch (error) {
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement registration with Lovable Cloud
-    setTimeout(() => setIsLoading(false), 1000);
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+    const nombre = formData.get("nombre") as string;
+    const apellido = formData.get("apellido") as string;
+    const telefono = formData.get("telefono") as string;
+
+    if (password !== confirmPassword) {
+      alert("Las contraseñas no coinciden");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await signUp(email, password, nombre, apellido, telefono);
+    } catch (error) {
+      console.error("Register error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -57,6 +95,7 @@ const Auth = () => {
                     <Label htmlFor="login-email">Email</Label>
                     <Input
                       id="login-email"
+                      name="email"
                       type="email"
                       placeholder="tu@email.com"
                       required
@@ -66,6 +105,7 @@ const Auth = () => {
                     <Label htmlFor="login-password">Contraseña</Label>
                     <Input
                       id="login-password"
+                      name="password"
                       type="password"
                       placeholder="••••••••"
                       required
@@ -99,6 +139,7 @@ const Auth = () => {
                       <Label htmlFor="register-firstname">Nombre</Label>
                       <Input
                         id="register-firstname"
+                        name="nombre"
                         placeholder="Juan"
                         required
                       />
@@ -107,6 +148,7 @@ const Auth = () => {
                       <Label htmlFor="register-lastname">Apellido</Label>
                       <Input
                         id="register-lastname"
+                        name="apellido"
                         placeholder="Pérez"
                         required
                       />
@@ -116,6 +158,7 @@ const Auth = () => {
                     <Label htmlFor="register-email">Email</Label>
                     <Input
                       id="register-email"
+                      name="email"
                       type="email"
                       placeholder="tu@email.com"
                       required
@@ -125,6 +168,7 @@ const Auth = () => {
                     <Label htmlFor="register-phone">Teléfono (opcional)</Label>
                     <Input
                       id="register-phone"
+                      name="telefono"
                       type="tel"
                       placeholder="+56 9 1234 5678"
                     />
@@ -133,18 +177,22 @@ const Auth = () => {
                     <Label htmlFor="register-password">Contraseña</Label>
                     <Input
                       id="register-password"
+                      name="password"
                       type="password"
                       placeholder="••••••••"
                       required
+                      minLength={6}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-confirm">Confirmar Contraseña</Label>
                     <Input
                       id="register-confirm"
+                      name="confirmPassword"
                       type="password"
                       placeholder="••••••••"
                       required
+                      minLength={6}
                     />
                   </div>
                 </CardContent>

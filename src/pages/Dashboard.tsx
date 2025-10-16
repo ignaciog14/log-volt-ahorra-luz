@@ -1,10 +1,33 @@
-import { Home, Plus, TrendingUp, Zap, AlertCircle } from "lucide-react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Home, Plus, TrendingUp, Zap, AlertCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/logo.png";
 
 const Dashboard = () => {
+  const { user, signOut, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
   // Mock data - will be replaced with real data from backend
   const totalConsumption = 450; // kWh
   const estimatedCost = 75000; // CLP
@@ -41,7 +64,10 @@ const Dashboard = () => {
           <div className="flex items-center gap-3">
             <img src={logo} alt="LogVolt" className="h-8 w-auto" />
           </div>
-          <Button variant="outline">Configuración</Button>
+          <Button variant="outline" onClick={signOut}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Cerrar Sesión
+          </Button>
         </div>
       </nav>
 
