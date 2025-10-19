@@ -90,6 +90,10 @@ const Homes = () => {
               <LayoutDashboard className="w-4 h-4 mr-2" />
               Dashboard
             </Button>
+            <Button variant="outline" onClick={() => navigate("/profile")}>
+              <Users className="w-4 h-4 mr-2" />
+              Mi Perfil
+            </Button>
             <Button variant="outline" onClick={signOut}>
               <LogOut className="w-4 h-4 mr-2" />
               Cerrar Sesión

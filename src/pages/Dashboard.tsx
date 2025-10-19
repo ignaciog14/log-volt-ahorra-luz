@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Plus, TrendingUp, Zap, AlertCircle, LogOut, LayoutDashboard } from "lucide-react";
+import { Home, Plus, TrendingUp, Zap, AlertCircle, LogOut, LayoutDashboard, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -270,6 +270,10 @@ const Dashboard = () => {
             <Button variant="outline" onClick={() => navigate("/homes")}>
               <Home className="w-4 h-4 mr-2" />
               Gestionar Hogares
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/profile")}>
+              <Users className="w-4 h-4 mr-2" />
+              Mi Perfil
             </Button>
             <Button variant="outline" onClick={signOut}>
               <LogOut className="w-4 h-4 mr-2" />
