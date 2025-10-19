@@ -8,6 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
+import ConsumptionBarChart from "@/components/ConsumptionBarChart";
+import ConsumptionPieChart from "@/components/ConsumptionPieChart";
+import ConsumptionLineChart from "@/components/ConsumptionLineChart";
 
 interface Hogar {
   id: number;
@@ -21,6 +24,17 @@ interface TopAppliance {
   room: string;
 }
 
+interface RoomConsumption {
+  name: string;
+  value: number;
+  percentage: number;
+}
+
+interface DailyConsumption {
+  date: string;
+  consumo: number;
+}
+
 const Dashboard = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
@@ -28,6 +42,8 @@ const Dashboard = () => {
   const [selectedHogar, setSelectedHogar] = useState<number | null>(null);
   const [totalConsumption, setTotalConsumption] = useState(0);
   const [topAppliances, setTopAppliances] = useState<TopAppliance[]>([]);
+  const [roomConsumption, setRoomConsumption] = useState<RoomConsumption[]>([]);
+  const [dailyConsumption, setDailyConsumption] = useState<DailyConsumption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -124,6 +140,66 @@ const Dashboard = () => {
 
         setTopAppliances(appliances);
       }
+
+      // Fetch consumption by room
+      const { data: roomsData, error: roomsError } = await supabase
+        .from("habitaciones")
+        .select(`
+          nombre,
+          electrodomesticos (
+            horas_uso_diarias,
+            consumo_kwh_ajustado,
+            tipos_electrodomestico (
+              consumo_kwh_predeterminado
+            )
+          )
+        `)
+        .eq("hogar_id", selectedHogar);
+
+      if (roomsError) throw roomsError;
+
+      if (roomsData) {
+        const roomConsumptionMap: { [key: string]: number } = {};
+        
+        roomsData.forEach((room: any) => {
+          let roomTotal = 0;
+          if (room.electrodomesticos && Array.isArray(room.electrodomesticos)) {
+            room.electrodomesticos.forEach((e: any) => {
+              const consumo = (e.consumo_kwh_ajustado || e.tipos_electrodomestico?.consumo_kwh_predeterminado || 0) * e.horas_uso_diarias * 30;
+              roomTotal += consumo;
+            });
+          }
+          if (roomTotal > 0) {
+            roomConsumptionMap[room.nombre] = Math.round(roomTotal);
+          }
+        });
+
+        const total = Object.values(roomConsumptionMap).reduce((sum, val) => sum + val, 0);
+        const roomConsumptionData: RoomConsumption[] = Object.entries(roomConsumptionMap)
+          .map(([name, value]) => ({
+            name,
+            value,
+            percentage: Math.round((value / total) * 100)
+          }))
+          .sort((a, b) => b.value - a.value);
+
+        setRoomConsumption(roomConsumptionData);
+      }
+
+      // Generate mock daily consumption data (últimos 7 días)
+      const mockDailyData: DailyConsumption[] = [];
+      const today = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dayConsumption = (consumoData || 0) / 30; // Promedio diario
+        const variation = (Math.random() - 0.5) * 0.3; // ±15% variación
+        mockDailyData.push({
+          date: date.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }),
+          consumo: Math.round(dayConsumption * (1 + variation))
+        });
+      }
+      setDailyConsumption(mockDailyData);
     } catch (error: any) {
       toast.error("Error al cargar los datos del dashboard");
       console.error(error);
@@ -262,6 +338,26 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Charts Section */}
+        <div className="grid lg:grid-cols-2 gap-6 mb-6">
+          <ConsumptionBarChart 
+            data={topAppliances.map(a => ({
+              name: a.name.substring(0, 15) + (a.name.length > 15 ? '...' : ''),
+              consumo: a.consumption,
+              room: a.room
+            }))}
+          />
+          {roomConsumption.length > 0 && (
+            <ConsumptionPieChart data={roomConsumption} />
+          )}
+        </div>
+
+        {dailyConsumption.length > 0 && (
+          <div className="mb-6">
+            <ConsumptionLineChart data={dailyConsumption} />
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Top Consumers */}
