@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Plus, TrendingUp, Zap, AlertCircle, LogOut } from "lucide-react";
+import { Home, Plus, TrendingUp, Zap, AlertCircle, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -190,10 +190,16 @@ const Dashboard = () => {
           <div className="flex items-center gap-3">
             <img src={logo} alt="LogVolt" className="h-8 w-auto" />
           </div>
-          <Button variant="outline" onClick={signOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Cerrar Sesión
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => navigate("/homes")}>
+              <Home className="w-4 h-4 mr-2" />
+              Gestionar Hogares
+            </Button>
+            <Button variant="outline" onClick={signOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Cerrar Sesión
+            </Button>
+          </div>
         </div>
       </nav>
 
