@@ -6,7 +6,26 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { z } from "zod";
 import logo from "@/assets/logo.png";
+
+const loginSchema = z.object({
+  email: z.string().email("Email inválido").max(255, "Email demasiado largo"),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").max(100, "Contraseña demasiado larga"),
+});
+
+const registerSchema = z.object({
+  email: z.string().email("Email inválido").max(255, "Email demasiado largo"),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").max(100, "Contraseña demasiado larga"),
+  confirmPassword: z.string(),
+  nombre: z.string().trim().min(1, "El nombre es requerido").max(100, "Nombre demasiado largo"),
+  apellido: z.string().trim().min(1, "El apellido es requerido").max(100, "Apellido demasiado largo"),
+  telefono: z.string().max(20, "Teléfono demasiado largo").optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
+});
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,9 +47,14 @@ const Auth = () => {
     const password = formData.get("password") as string;
 
     try {
-      await signIn(email, password);
+      // Client-side validation
+      const validated = loginSchema.parse({ email, password });
+      await signIn(validated.email, validated.password);
     } catch (error) {
-      console.error("Login error:", error);
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      }
+      // Auth errors are already handled in useAuth with generic message
     } finally {
       setIsLoading(false);
     }
@@ -47,16 +71,29 @@ const Auth = () => {
     const apellido = formData.get("apellido") as string;
     const telefono = formData.get("telefono") as string;
 
-    if (password !== confirmPassword) {
-      alert("Las contraseñas no coinciden");
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      await signUp(email, password, nombre, apellido, telefono);
+      // Client-side validation
+      const validated = registerSchema.parse({
+        email,
+        password,
+        confirmPassword,
+        nombre,
+        apellido,
+        telefono: telefono || undefined,
+      });
+      
+      await signUp(
+        validated.email,
+        validated.password,
+        validated.nombre,
+        validated.apellido,
+        validated.telefono
+      );
     } catch (error) {
-      console.error("Register error:", error);
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      }
+      // Auth errors are already handled in useAuth
     } finally {
       setIsLoading(false);
     }

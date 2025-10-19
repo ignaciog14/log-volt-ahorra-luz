@@ -49,15 +49,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+      
+      // Update ultimo_login timestamp
+      if (data.user) {
+        await supabase
+          .from("profiles")
+          .update({ ultimo_login: new Date().toISOString() })
+          .eq("id", data.user.id);
+      }
+      
       toast.success("¡Sesión iniciada exitosamente!");
     } catch (error: any) {
-      toast.error(error.message || "Error al iniciar sesión");
+      // Generic error message - don't reveal if email exists
+      toast.error("Credenciales inválidas. Por favor, verifica tu email y contraseña.");
       throw error;
     }
   };
