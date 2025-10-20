@@ -278,6 +278,7 @@ export type Database = {
       }
       hogares: {
         Row: {
+          activo: boolean
           area_m2: number | null
           comuna_id: number | null
           direccion: string | null
@@ -290,6 +291,7 @@ export type Database = {
           usuario_id: string
         }
         Insert: {
+          activo?: boolean
           area_m2?: number | null
           comuna_id?: number | null
           direccion?: string | null
@@ -302,6 +304,7 @@ export type Database = {
           usuario_id: string
         }
         Update: {
+          activo?: boolean
           area_m2?: number | null
           comuna_id?: number | null
           direccion?: string | null

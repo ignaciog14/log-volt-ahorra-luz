@@ -5,10 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import RoomForm from "@/components/RoomForm";
 import ApplianceForm from "@/components/ApplianceForm";
+import HomeEditForm from "@/components/HomeEditForm";
 
 interface Habitacion {
   id: number;
@@ -32,6 +34,10 @@ interface Hogar {
   id: number;
   nombre: string;
   direccion: string | null;
+  numero_personas: number | null;
+  area_m2: number | null;
+  comuna_id: number | null;
+  empresa_electrica_id: number | null;
 }
 
 const HomeDetails = () => {
@@ -43,6 +49,8 @@ const HomeDetails = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [applianceDialogOpen, setApplianceDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -152,6 +160,31 @@ const HomeDetails = () => {
     setApplianceDialogOpen(true);
   };
 
+  const handleEditSuccess = () => {
+    setEditDialogOpen(false);
+    fetchData();
+  };
+
+  const handleDeleteHome = async () => {
+    if (!id) return;
+
+    try {
+      const { error } = await supabase
+        .from("hogares")
+        .update({ activo: false })
+        .eq("id", parseInt(id));
+
+      if (error) throw error;
+
+      toast.success("Hogar eliminado exitosamente");
+      navigate("/homes");
+    } catch (error: any) {
+      toast.error("Error al eliminar el hogar");
+    }
+  };
+
+  const hasHistoricalData = habitaciones.length > 0;
+
   if (loading || loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -188,20 +221,49 @@ const HomeDetails = () => {
                 <p className="text-muted-foreground mt-2">{hogar.direccion}</p>
               )}
             </div>
-            <Dialog open={roomDialogOpen} onOpenChange={setRoomDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nueva Habitación
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Crear Nueva Habitación</DialogTitle>
-                </DialogHeader>
-                <RoomForm hogarId={hogarIdNum} onSuccess={handleRoomSuccess} />
-              </DialogContent>
-            </Dialog>
+            <div className="flex gap-2">
+              <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar Hogar
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Editar Hogar</DialogTitle>
+                  </DialogHeader>
+                  <HomeEditForm 
+                    hogarId={hogarIdNum} 
+                    currentData={hogar}
+                    onSuccess={handleEditSuccess} 
+                  />
+                </DialogContent>
+              </Dialog>
+              
+              <Button 
+                variant="destructive" 
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Eliminar Hogar
+              </Button>
+
+              <Dialog open={roomDialogOpen} onOpenChange={setRoomDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nueva Habitación
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Crear Nueva Habitación</DialogTitle>
+                  </DialogHeader>
+                  <RoomForm hogarId={hogarIdNum} onSuccess={handleRoomSuccess} />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
 
@@ -304,6 +366,28 @@ const HomeDetails = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción eliminará el hogar "{hogar.nombre}".
+                {hasHistoricalData && (
+                  <span className="block mt-2 font-semibold text-destructive">
+                    ⚠️ Este hogar contiene {habitaciones.length} habitación(es) con electrodomésticos y datos históricos que también se perderán.
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteHome} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
