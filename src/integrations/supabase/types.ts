@@ -249,21 +249,27 @@ export type Database = {
       }
       habitaciones: {
         Row: {
+          activo: boolean | null
           hogar_id: number
           id: number
           nombre: string
+          orden: number | null
           tipo: Database["public"]["Enums"]["tipo_habitacion"]
         }
         Insert: {
+          activo?: boolean | null
           hogar_id: number
           id?: number
           nombre: string
+          orden?: number | null
           tipo: Database["public"]["Enums"]["tipo_habitacion"]
         }
         Update: {
+          activo?: boolean | null
           hogar_id?: number
           id?: number
           nombre?: string
+          orden?: number | null
           tipo?: Database["public"]["Enums"]["tipo_habitacion"]
         }
         Relationships: [

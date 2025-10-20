@@ -6,16 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Trash2, Edit } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Plus, Trash2, Edit, Home, Utensils, Bath, Sofa, UtensilsCrossed, Briefcase, Trees, Car, MoreHorizontal, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import RoomForm from "@/components/RoomForm";
+import RoomEditForm from "@/components/RoomEditForm";
 import ApplianceForm from "@/components/ApplianceForm";
 import HomeEditForm from "@/components/HomeEditForm";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Habitacion {
   id: number;
   nombre: string;
   tipo: string;
+  orden?: number;
   electrodomesticos: Electrodomestico[];
 }
 
@@ -51,7 +55,11 @@ const HomeDetails = () => {
   const [applianceDialogOpen, setApplianceDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editRoomDialogOpen, setEditRoomDialogOpen] = useState(false);
+  const [deleteRoomDialogOpen, setDeleteRoomDialogOpen] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<Habitacion | null>(null);
+  const [sortBy, setSortBy] = useState<"orden" | "nombre" | "tipo">("orden");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -104,24 +112,71 @@ const HomeDetails = () => {
     }
   };
 
-  const handleDeleteRoom = async (roomId: number) => {
-    if (!confirm("¿Estás seguro de eliminar esta habitación? Se eliminarán todos sus electrodomésticos.")) {
-      return;
-    }
+  const getRoomIcon = (tipo: string) => {
+    const icons: { [key: string]: any } = {
+      dormitorio: Home,
+      cocina: Utensils,
+      bano: Bath,
+      living: Sofa,
+      comedor: UtensilsCrossed,
+      estudio: Briefcase,
+      patio: Trees,
+      garage: Car,
+      lavanderia: MoreHorizontal,
+      otro: MoreHorizontal,
+    };
+    return icons[tipo] || MoreHorizontal;
+  };
 
+  const getSortedRooms = () => {
+    const sorted = [...habitaciones];
+    switch (sortBy) {
+      case "nombre":
+        return sorted.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      case "tipo":
+        return sorted.sort((a, b) => a.tipo.localeCompare(b.tipo));
+      case "orden":
+      default:
+        return sorted.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: number) => {
     try {
-      const { error } = await supabase
-        .from("habitaciones")
+      // First delete all appliances in the room
+      const { error: appliancesError } = await supabase
+        .from("electrodomesticos")
         .delete()
+        .eq("habitacion_id", roomId);
+
+      if (appliancesError) throw appliancesError;
+
+      // Then soft delete the room
+      const { error: roomError } = await supabase
+        .from("habitaciones")
+        .update({ activo: false })
         .eq("id", roomId);
 
-      if (error) throw error;
+      if (roomError) throw roomError;
+      
       toast.success("Habitación eliminada");
+      setDeleteRoomDialogOpen(false);
+      setSelectedRoom(null);
       fetchData();
     } catch (error: any) {
       toast.error("Error al eliminar la habitación");
       console.error(error);
     }
+  };
+
+  const openDeleteRoomDialog = (room: Habitacion) => {
+    setSelectedRoom(room);
+    setDeleteRoomDialogOpen(true);
+  };
+
+  const openEditRoomDialog = (room: Habitacion) => {
+    setSelectedRoom(room);
+    setEditRoomDialogOpen(true);
   };
 
   const handleDeleteAppliance = async (applianceId: number) => {
@@ -162,6 +217,12 @@ const HomeDetails = () => {
 
   const handleEditSuccess = () => {
     setEditDialogOpen(false);
+    fetchData();
+  };
+
+  const handleRoomEditSuccess = () => {
+    setEditRoomDialogOpen(false);
+    setSelectedRoom(null);
     fetchData();
   };
 
@@ -271,7 +332,7 @@ const HomeDetails = () => {
           </div>
         </div>
 
-        {habitaciones.length === 0 ? (
+{habitaciones.length === 0 ? (
           <Card className="p-12 text-center">
             <h3 className="text-xl font-semibold mb-2">No hay habitaciones registradas</h3>
             <p className="text-muted-foreground mb-6">Crea tu primera habitación para comenzar a agregar electrodomésticos</p>
@@ -291,73 +352,110 @@ const HomeDetails = () => {
             </Dialog>
           </Card>
         ) : (
-          <div className="space-y-6">
-            {habitaciones.map((habitacion) => (
-              <Card key={habitacion.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{habitacion.nombre}</CardTitle>
-                      <CardDescription className="capitalize">{habitacion.tipo}</CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => openApplianceDialog(habitacion.id)}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Agregar Electrodoméstico
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteRoom(habitacion.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {habitacion.electrodomesticos && habitacion.electrodomesticos.length > 0 ? (
-                    <div className="space-y-2">
-                      {habitacion.electrodomesticos.map((electro) => (
-                        <div
-                          key={electro.id}
-                          className="flex justify-between items-center p-3 rounded-lg bg-muted"
-                        >
-                          <div>
-                            <p className="font-medium">
-                              {electro.nombre_personalizado || electro.tipos_electrodomestico?.nombre}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {electro.horas_uso_diarias}h/día • {electro.tipos_electrodomestico?.categoria}
-                            </p>
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="sortBy">Ordenar por:</Label>
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger id="sortBy" className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="orden">Orden</SelectItem>
+                    <SelectItem value="nombre">Nombre</SelectItem>
+                    <SelectItem value="tipo">Tipo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {getSortedRooms().map((habitacion) => {
+                const IconComponent = getRoomIcon(habitacion.tipo);
+                const applianceCount = habitacion.electrodomesticos?.length || 0;
+                
+                return (
+                  <Card key={habitacion.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <IconComponent className="h-6 w-6 text-primary" />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded text-xs ${electro.activo ? 'bg-success text-success-foreground' : 'bg-muted-foreground text-background'}`}>
-                              {electro.activo ? 'Activo' : 'Inactivo'}
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeleteAppliance(electro.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                          <div>
+                            <CardTitle className="text-lg">{habitacion.nombre}</CardTitle>
+                            <CardDescription className="capitalize">{habitacion.tipo}</CardDescription>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-center py-4">
-                      No hay electrodomésticos en esta habitación
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+                        <span className="px-2 py-1 rounded-md bg-muted">
+                          {applianceCount} {applianceCount === 1 ? 'electrodoméstico' : 'electrodomésticos'}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openApplianceDialog(habitacion.id)}
+                          className="flex-1"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Agregar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditRoomDialog(habitacion)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openDeleteRoomDialog(habitacion)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+
+                      {habitacion.electrodomesticos && habitacion.electrodomesticos.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          <p className="text-sm font-medium">Electrodomésticos:</p>
+                          {habitacion.electrodomesticos.map((electro) => (
+                            <div
+                              key={electro.id}
+                              className="flex justify-between items-center p-2 rounded-lg bg-muted text-sm"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">
+                                  {electro.nombre_personalizado || electro.tipos_electrodomestico?.nombre}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {electro.horas_uso_diarias}h/día
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteAppliance(electro.id)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </>
         )}
 
         <Dialog open={applianceDialogOpen} onOpenChange={setApplianceDialogOpen}>
@@ -370,6 +468,54 @@ const HomeDetails = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        <Dialog open={editRoomDialogOpen} onOpenChange={setEditRoomDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Habitación</DialogTitle>
+            </DialogHeader>
+            {selectedRoom && (
+              <RoomEditForm
+                habitacionId={selectedRoom.id}
+                currentData={{
+                  nombre: selectedRoom.nombre,
+                  tipo: selectedRoom.tipo,
+                  orden: selectedRoom.orden,
+                }}
+                onSuccess={handleRoomEditSuccess}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={deleteRoomDialogOpen} onOpenChange={setDeleteRoomDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar habitación?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {selectedRoom && (
+                  <>
+                    Se eliminará la habitación "{selectedRoom.nombre}".
+                    {selectedRoom.electrodomesticos && selectedRoom.electrodomesticos.length > 0 && (
+                      <span className="block mt-2 font-semibold text-destructive">
+                        ⚠️ Esta habitación contiene {selectedRoom.electrodomesticos.length} electrodoméstico(s) que también serán eliminados.
+                      </span>
+                    )}
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => selectedRoom && handleDeleteRoom(selectedRoom.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>

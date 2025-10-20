@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -17,8 +17,13 @@ const roomSchema = z.object({
 
 type RoomFormValues = z.infer<typeof roomSchema>;
 
-interface RoomFormProps {
-  hogarId: number;
+interface RoomEditFormProps {
+  habitacionId: number;
+  currentData: {
+    nombre: string;
+    tipo: string;
+    orden?: number;
+  };
   onSuccess: () => void;
 }
 
@@ -35,7 +40,7 @@ const tiposHabitacion = [
   { value: "otro", label: "Otro" },
 ];
 
-const RoomForm = ({ hogarId, onSuccess }: RoomFormProps) => {
+const RoomEditForm = ({ habitacionId, currentData, onSuccess }: RoomEditFormProps) => {
   const [loading, setLoading] = useState(false);
   const {
     register,
@@ -44,32 +49,39 @@ const RoomForm = ({ hogarId, onSuccess }: RoomFormProps) => {
     formState: { errors },
   } = useForm<RoomFormValues>({
     resolver: zodResolver(roomSchema),
+    defaultValues: {
+      nombre: currentData.nombre,
+      tipo: currentData.tipo as any,
+      orden: currentData.orden || 0,
+    },
   });
+
+  useEffect(() => {
+    setValue("tipo", currentData.tipo as any);
+  }, [currentData, setValue]);
 
   const onSubmit = async (data: RoomFormValues) => {
     setLoading(true);
     try {
-      const insertData: any = {
-        nombre: data.nombre,
-        tipo: data.tipo,
-        orden: data.orden,
-        hogar_id: hogarId,
-      };
-      
       const { error } = await supabase
         .from("habitaciones")
-        .insert(insertData);
+        .update({
+          nombre: data.nombre,
+          tipo: data.tipo,
+          orden: data.orden,
+        })
+        .eq("id", habitacionId);
 
       if (error) {
         if (error.code === '23505') {
           toast.error("Ya existe una habitación con ese nombre en este hogar");
         } else {
-          toast.error(error.message || "Error al crear la habitación");
+          toast.error(error.message || "Error al actualizar la habitación");
         }
         throw error;
       }
 
-      toast.success("Habitación creada exitosamente");
+      toast.success("Habitación actualizada exitosamente");
       onSuccess();
     } catch (error: any) {
       console.error(error);
@@ -94,7 +106,10 @@ const RoomForm = ({ hogarId, onSuccess }: RoomFormProps) => {
 
       <div>
         <Label htmlFor="tipo">Tipo de Habitación *</Label>
-        <Select onValueChange={(value) => setValue("tipo", value as any)}>
+        <Select 
+          onValueChange={(value) => setValue("tipo", value as any)}
+          defaultValue={currentData.tipo}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Selecciona un tipo" />
           </SelectTrigger>
@@ -118,7 +133,6 @@ const RoomForm = ({ hogarId, onSuccess }: RoomFormProps) => {
           type="number"
           {...register("orden", { valueAsNumber: true })}
           placeholder="0"
-          defaultValue={0}
         />
         {errors.orden && (
           <p className="text-sm text-destructive mt-1">{errors.orden.message}</p>
@@ -126,10 +140,10 @@ const RoomForm = ({ hogarId, onSuccess }: RoomFormProps) => {
       </div>
 
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Creando..." : "Crear Habitación"}
+        {loading ? "Guardando..." : "Guardar Cambios"}
       </Button>
     </form>
   );
 };
 
-export default RoomForm;
+export default RoomEditForm;
