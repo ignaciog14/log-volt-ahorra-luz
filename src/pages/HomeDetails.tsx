@@ -174,12 +174,16 @@ const HomeDetails = () => {
         .update({ activo: false })
         .eq("id", parseInt(id));
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
       toast.success("Hogar eliminado exitosamente");
       navigate("/homes");
     } catch (error: any) {
-      toast.error("Error al eliminar el hogar");
+      console.error("Delete home error:", error);
+      toast.error("Error al eliminar el hogar: " + (error.message || "Error desconocido"));
     }
   };
 
