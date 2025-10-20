@@ -171,7 +171,7 @@ const HomeDetails = () => {
     try {
       const { error } = await supabase
         .from("hogares")
-        .update({ activo: false })
+        .delete()
         .eq("id", parseInt(id));
 
       if (error) {
