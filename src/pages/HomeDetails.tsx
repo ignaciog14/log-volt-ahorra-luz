@@ -399,12 +399,18 @@ const HomeDetails = () => {
                       <div className="flex flex-wrap gap-2">
                         <Button
                           size="sm"
-                          variant="outline"
-                          onClick={() => openApplianceDialog(habitacion.id)}
+                          variant="default"
+                          onClick={() => navigate(`/rooms/${habitacion.id}`)}
                           className="flex-1"
                         >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Agregar
+                          Ver Electrodomésticos
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openApplianceDialog(habitacion.id)}
+                        >
+                          <Plus className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
