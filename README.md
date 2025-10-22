@@ -71,3 +71,15 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Local environment variables
+
+This project uses Vite environment variables. To run locally, copy the example file and create your own local env file:
+
+```sh
+cp .env.example .env
+# then edit .env with your keys
+```
+
+IMPORTANT: Do NOT commit `.env` to the repository. Keep sensitive keys out of the repo and use `.env.example` to share the variable names only. The repository already ignores `.env`.
+
