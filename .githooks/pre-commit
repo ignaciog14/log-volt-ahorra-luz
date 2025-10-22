@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Pre-commit hook: evita que archivos de entorno (.env) sean commiteados
+set -e
+
+
+# We only want to block if the staged change is ADD or MODIFY of an env file.
+# Use name-status to get the change type (A, M, D, etc.). Allow D (deletions).
+STAGED_STATUS=$(git diff --cached --name-status)
+
+while IFS= read -r line; do
+  status=$(echo "$line" | awk '{print $1}')
+  file=$(echo "$line" | awk '{print $2}')
+  if [[ "$file" == ".env" || "$file" == *.env.* || "$file" == *.env ]]; then
+    if [[ "$status" != "D" ]]; then
+      echo "ERROR: Intentando commitear archivos de entorno (.env) con status $status."
+      echo "Por favor, mueve las variables sensibles a tu entorno local y usa .env.example en el repo."
+      echo "Para quitarlo del staging: git reset HEAD -- $file"
+      exit 1
+    fi
+  fi
+done <<< "$STAGED_STATUS"
+
+exit 0
