@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, Plus, TrendingUp, Zap, AlertCircle, LogOut, LayoutDashboard, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -45,6 +46,10 @@ const Dashboard = () => {
   const [roomConsumption, setRoomConsumption] = useState<RoomConsumption[]>([]);
   const [dailyConsumption, setDailyConsumption] = useState<DailyConsumption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [totalRooms, setTotalRooms] = useState(0);
+  const [totalAppliances, setTotalAppliances] = useState(0);
+  const [sortRoomsBy, setSortRoomsBy] = useState<"name" | "consumption">("consumption");
+  const [sortAppliancesBy, setSortAppliancesBy] = useState<"name" | "consumption">("consumption");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -159,11 +164,15 @@ const Dashboard = () => {
       if (roomsError) throw roomsError;
 
       if (roomsData) {
+        setTotalRooms(roomsData.length);
+        
+        let totalAppliancesCount = 0;
         const roomConsumptionMap: { [key: string]: number } = {};
         
         roomsData.forEach((room: any) => {
           let roomTotal = 0;
           if (room.electrodomesticos && Array.isArray(room.electrodomesticos)) {
+            totalAppliancesCount += room.electrodomesticos.length;
             room.electrodomesticos.forEach((e: any) => {
               const consumo = (e.consumo_kwh_ajustado || e.tipos_electrodomestico?.consumo_kwh_predeterminado || 0) * e.horas_uso_diarias * 30;
               roomTotal += consumo;
@@ -173,6 +182,8 @@ const Dashboard = () => {
             roomConsumptionMap[room.nombre] = Math.round(roomTotal);
           }
         });
+
+        setTotalAppliances(totalAppliancesCount);
 
         const total = Object.values(roomConsumptionMap).reduce((sum, val) => sum + val, 0);
         const roomConsumptionData: RoomConsumption[] = Object.entries(roomConsumptionMap)
@@ -258,6 +269,37 @@ const Dashboard = () => {
   const estimatedCost = Math.round(totalConsumption * 150);
   const progress = (totalConsumption / monthlyGoal) * 100;
 
+  // Calculate 7-day average for line chart
+  const sevenDayAverage = dailyConsumption.length > 0
+    ? Math.round(dailyConsumption.reduce((sum, day) => sum + day.consumo, 0) / dailyConsumption.length)
+    : 0;
+
+  // Sort rooms based on selected criteria
+  const sortedRooms = [...roomConsumption].sort((a, b) => {
+    if (sortRoomsBy === "name") return a.name.localeCompare(b.name);
+    return b.value - a.value;
+  });
+
+  // Get all appliances with consumption details
+  const allAppliances = topAppliances.map((appliance, index) => ({
+    ...appliance,
+    consumptionLevel: appliance.percentage > 30 ? "high" : appliance.percentage > 15 ? "medium" : "low"
+  }));
+
+  const sortedAppliances = [...allAppliances].sort((a, b) => {
+    if (sortAppliancesBy === "name") return a.name.localeCompare(b.name);
+    return b.consumption - a.consumption;
+  });
+
+  const getConsumptionColor = (level: string) => {
+    switch(level) {
+      case "high": return "text-destructive";
+      case "medium": return "text-warning";
+      case "low": return "text-success";
+      default: return "text-muted-foreground";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -301,7 +343,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Consumo Total</CardTitle>
@@ -324,6 +366,19 @@ const Dashboard = () => {
               <div className="text-3xl font-bold">${estimatedCost.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 CLP este mes
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Habitaciones</CardTitle>
+              <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{totalRooms}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalAppliances} electrodomésticos
               </p>
             </CardContent>
           </Card>
@@ -359,9 +414,138 @@ const Dashboard = () => {
 
         {dailyConsumption.length > 0 && (
           <div className="mb-6">
-            <ConsumptionLineChart data={dailyConsumption} />
+            <ConsumptionLineChart 
+              data={dailyConsumption}
+              description={`Promedio 7 días: ${sevenDayAverage} kWh/día`}
+            />
           </div>
         )}
+
+        {/* Detailed Consumption Tables */}
+        <div className="grid lg:grid-cols-2 gap-6 mb-6">
+          {/* Consumption by Room - Detailed */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Consumo por Habitación</CardTitle>
+                  <CardDescription>Desglose detallado por espacio</CardDescription>
+                </div>
+                <select
+                  value={sortRoomsBy}
+                  onChange={(e) => setSortRoomsBy(e.target.value as "name" | "consumption")}
+                  className="text-sm border border-border rounded-md px-2 py-1 bg-background"
+                >
+                  <option value="consumption">Por Consumo</option>
+                  <option value="name">Por Nombre</option>
+                </select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {sortedRooms.length > 0 ? (
+                <div className="space-y-3">
+                  {sortedRooms.map((room, index) => (
+                    <div key={index} className="p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="font-semibold">{room.name}</p>
+                          <p className="text-sm text-muted-foreground">{room.percentage}% del total</p>
+                        </div>
+                        <div className="text-right mr-3">
+                          <p className="text-lg font-bold">{room.value} kWh</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const roomData = roomConsumption.find(r => r.name === room.name);
+                            if (roomData) {
+                              navigate(`/homes/${selectedHogar}`);
+                            }
+                          }}
+                        >
+                          Ver
+                        </Button>
+                      </div>
+                      <Progress value={room.percentage} className="h-2" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  No hay datos de consumo por habitación
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Consumption by Appliance - Detailed */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Consumo por Electrodoméstico</CardTitle>
+                  <CardDescription>Detalle de cada dispositivo</CardDescription>
+                </div>
+                <select
+                  value={sortAppliancesBy}
+                  onChange={(e) => setSortAppliancesBy(e.target.value as "name" | "consumption")}
+                  className="text-sm border border-border rounded-md px-2 py-1 bg-background"
+                >
+                  <option value="consumption">Por Consumo</option>
+                  <option value="name">Por Nombre</option>
+                </select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {sortedAppliances.length > 0 ? (
+                <div className="space-y-3">
+                  {sortedAppliances.map((appliance, index) => (
+                    <div key={index} className="p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex-1">
+                          <p className="font-semibold">{appliance.name}</p>
+                          <p className="text-xs text-muted-foreground">{appliance.room}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-lg font-bold ${getConsumptionColor(appliance.consumptionLevel)}`}>
+                            {appliance.consumption} kWh
+                          </p>
+                          <p className="text-xs text-muted-foreground">{appliance.percentage}%</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`flex-1 h-2 rounded-full ${
+                          appliance.consumptionLevel === "high" ? "bg-destructive/20" :
+                          appliance.consumptionLevel === "medium" ? "bg-warning/20" :
+                          "bg-success/20"
+                        }`}>
+                          <div 
+                            className={`h-full rounded-full ${
+                              appliance.consumptionLevel === "high" ? "bg-destructive" :
+                              appliance.consumptionLevel === "medium" ? "bg-warning" :
+                              "bg-success"
+                            }`}
+                            style={{ width: `${Math.min(appliance.percentage * 2, 100)}%` }}
+                          />
+                        </div>
+                        <span className={`text-xs font-medium ${getConsumptionColor(appliance.consumptionLevel)}`}>
+                          {appliance.consumptionLevel === "high" ? "Alto" :
+                           appliance.consumptionLevel === "medium" ? "Medio" :
+                           "Bajo"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  No hay electrodomésticos registrados
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Top Consumers */}
