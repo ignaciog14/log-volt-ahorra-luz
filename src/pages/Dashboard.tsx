@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Plus, TrendingUp, Zap, AlertCircle, LogOut, LayoutDashboard, Users } from "lucide-react";
+import { Home, Plus, TrendingUp, Zap, AlertCircle, LogOut, LayoutDashboard, Users, DollarSign } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,8 @@ import logo from "@/assets/logo.png";
 import ConsumptionBarChart from "@/components/ConsumptionBarChart";
 import ConsumptionPieChart from "@/components/ConsumptionPieChart";
 import ConsumptionLineChart from "@/components/ConsumptionLineChart";
+import { useTarifas } from "@/hooks/useTarifas";
+import { CostCards } from "@/components/CostCards";
 
 interface Hogar {
   id: number;
@@ -50,6 +52,7 @@ const Dashboard = () => {
   const [totalAppliances, setTotalAppliances] = useState(0);
   const [sortRoomsBy, setSortRoomsBy] = useState<"name" | "consumption">("consumption");
   const [sortAppliancesBy, setSortAppliancesBy] = useState<"name" | "consumption">("consumption");
+  const { tarifa, loading: tarifaLoading } = useTarifas(selectedHogar);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -266,8 +269,13 @@ const Dashboard = () => {
   }
 
   const monthlyGoal = 400;
-  const estimatedCost = Math.round(totalConsumption * 150);
+  const tarifaMedia = tarifa?.tarifa_media_pesos_kwh || 125;
+  const estimatedCost = Math.round(totalConsumption * tarifaMedia);
   const progress = (totalConsumption / monthlyGoal) * 100;
+  
+  // Calcular consumo diario promedio
+  const consumoDiarioPromedio = totalConsumption / 30;
+  const consumoAyer = dailyConsumption.length >= 2 ? dailyConsumption[dailyConsumption.length - 2].consumo : undefined;
 
   // Calculate 7-day average for line chart
   const sevenDayAverage = dailyConsumption.length > 0
@@ -343,7 +351,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Consumo Total</CardTitle>
@@ -357,18 +365,59 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Costo Estimado</CardTitle>
-              <TrendingUp className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">${estimatedCost.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                CLP este mes
-              </p>
-            </CardContent>
-          </Card>
+          {tarifa && !tarifaLoading ? (
+            <CostCards 
+              consumoMensual={totalConsumption}
+              consumoDiario={consumoDiarioPromedio}
+              consumoAyer={consumoAyer}
+              tarifa={tarifa}
+            />
+          ) : (
+            <>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Costo Estimado Hoy</CardTitle>
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">---</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Configure comuna y empresa eléctrica
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Costo Mensual</CardTitle>
+                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">---</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Configure tarifas en su hogar
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Tarifas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    No configuradas
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => navigate("/homes")}
+                  >
+                    Configurar
+                  </Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
