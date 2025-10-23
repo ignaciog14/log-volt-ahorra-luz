@@ -143,10 +143,10 @@ const HomeDetails = () => {
 
   const handleDeleteRoom = async (roomId: number) => {
     try {
-      // First delete all appliances in the room
+      // First soft delete all appliances in the room
       const { error: appliancesError } = await supabase
         .from("electrodomesticos")
-        .delete()
+        .update({ activo: false })
         .eq("habitacion_id", roomId);
 
       if (appliancesError) throw appliancesError;
@@ -185,9 +185,10 @@ const HomeDetails = () => {
     }
 
     try {
+      // Soft delete - mark as inactive
       const { error } = await supabase
         .from("electrodomesticos")
-        .delete()
+        .update({ activo: false })
         .eq("id", applianceId);
 
       if (error) throw error;
@@ -230,9 +231,10 @@ const HomeDetails = () => {
     if (!id) return;
 
     try {
+      // Soft delete home - mark as inactive
       const { error } = await supabase
         .from("hogares")
-        .delete()
+        .update({ activo: false })
         .eq("id", parseInt(id));
 
       if (error) {

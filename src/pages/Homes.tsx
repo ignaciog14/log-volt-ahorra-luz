@@ -110,9 +110,9 @@ const Homes = () => {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={hogares.length >= 1}>
                 <Plus className="mr-2 h-4 w-4" />
-                Nuevo Hogar
+                {hogares.length >= 1 ? "Límite alcanzado (MVP)" : "Nuevo Hogar"}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -129,6 +129,7 @@ const Homes = () => {
             <Home className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">No tienes hogares registrados</h3>
             <p className="text-muted-foreground mb-6">Crea tu primer hogar para comenzar a monitorear tu consumo eléctrico</p>
+            <p className="text-xs text-muted-foreground mb-4">MVP: Máximo 1 hogar permitido</p>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
