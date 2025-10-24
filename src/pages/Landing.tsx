@@ -12,6 +12,12 @@ const Landing = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={logo} alt="LogVolt" className="h-10 w-auto" />
+            {/* Wordmark beside the logo: 'Log' gray + 'Volt' blue using Montserrat Bold */}
+            <span className="ml-2 text-2xl font-extrabold leading-none font-montserrat" aria-hidden>
+              <span className="text-[#3D484B]">Log</span>
+              <span className="text-[#0BA3E6]">Volt</span>
+            </span>
+            <span className="sr-only">LogVolt</span>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/auth">

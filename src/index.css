@@ -123,3 +123,11 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Brand font utility using Montserrat Bold loaded from Google Fonts */
+  .font-montserrat {
+    font-family: 'Montserrat', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    font-weight: 700;
+  }
+}
