@@ -2,27 +2,13 @@ import { Link } from "react-router-dom";
 import { Zap, TrendingDown, Home, Lightbulb, BarChart3, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Navbar } from "@/components/Navbar";
 import logo from "@/assets/logo.png";
 
 const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="LogVolt" className="h-10 w-auto" />
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/auth">
-              <Button variant="ghost">Iniciar Sesión</Button>
-            </Link>
-            <Link to="/auth">
-              <Button>Comenzar Gratis</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Navbar showAuthButtons={false} />
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 md:py-32">

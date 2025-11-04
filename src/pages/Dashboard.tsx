@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Plus, TrendingUp, Zap, AlertCircle, LogOut, LayoutDashboard, Users, DollarSign } from "lucide-react";
+import { Home, Plus, TrendingUp, Zap, AlertCircle, LayoutDashboard, DollarSign } from "lucide-react";
+import { Navbar } from "@/components/Navbar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,6 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import logo from "@/assets/logo.png";
 import ConsumptionBarChart from "@/components/ConsumptionBarChart";
 import ConsumptionPieChart from "@/components/ConsumptionPieChart";
 import ConsumptionLineChart from "@/components/ConsumptionLineChart";
@@ -242,17 +242,7 @@ const Dashboard = () => {
   if (hogares.length === 0) {
     return (
       <div className="min-h-screen bg-background">
-        <nav className="border-b border-border bg-card">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src={logo} alt="LogVolt" className="h-8 w-auto" />
-            </div>
-            <Button variant="outline" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar Sesión
-            </Button>
-          </div>
-        </nav>
+        <Navbar />
         <div className="container mx-auto px-4 py-16">
           <Card className="p-12 text-center max-w-2xl mx-auto">
             <Home className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
@@ -312,28 +302,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="LogVolt" className="h-8 w-auto" />
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => navigate("/homes")}>
-              <Home className="w-4 h-4 mr-2" />
-              Gestionar Hogares
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/profile")}>
-              <Users className="w-4 h-4 mr-2" />
-              Mi Perfil
-            </Button>
-            <Button variant="outline" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar Sesión
-            </Button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}

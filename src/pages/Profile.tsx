@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Navbar } from "@/components/Navbar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
-import logo from "@/assets/logo.png";
 import { Loader2 } from "lucide-react";
 
 const profileSchema = z.object({
@@ -204,27 +204,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navbar */}
-      <nav className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link to="/dashboard">
-              <img src={logo} alt="LogVolt" className="h-8 w-auto" />
-            </Link>
-            <div className="flex gap-4">
-              <Button variant="ghost" asChild>
-                <Link to="/dashboard">Dashboard</Link>
-              </Button>
-              <Button variant="ghost" asChild>
-                <Link to="/homes">Gestionar Hogares</Link>
-              </Button>
-            </div>
-          </div>
-          <Button variant="outline" onClick={signOut}>
-            Cerrar Sesión
-          </Button>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Content */}
       <div className="container mx-auto px-4 py-8 max-w-4xl">

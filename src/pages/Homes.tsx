@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Home, Plus, MapPin, Users, Square, LayoutDashboard, LogOut } from "lucide-react";
+import { Home, Plus, MapPin, Users, Square } from "lucide-react";
 import { toast } from "sonner";
 import HomeForm from "@/components/HomeForm";
-import logo from "@/assets/logo.png";
 
 interface Hogar {
   id: number;
@@ -80,28 +80,7 @@ const Homes = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="LogVolt" className="h-8 w-auto" />
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              <LayoutDashboard className="w-4 h-4 mr-2" />
-              Dashboard
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/profile")}>
-              <Users className="w-4 h-4 mr-2" />
-              Mi Perfil
-            </Button>
-            <Button variant="outline" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar Sesión
-            </Button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
