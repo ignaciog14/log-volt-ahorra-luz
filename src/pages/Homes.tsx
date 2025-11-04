@@ -49,7 +49,8 @@ const Homes = () => {
             nombre
           )
         `)
-        .order("fecha_creacion", { ascending: false });
+        .eq("activo", true)
+        .order("fecha_creacion", { ascending: false});
 
       if (error) throw error;
       setHogares(data || []);

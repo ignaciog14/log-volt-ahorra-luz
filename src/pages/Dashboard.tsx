@@ -77,7 +77,8 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from("hogares")
         .select("id, nombre")
-        .order("fecha_creacion", { ascending: false });
+        .eq("activo", true)
+        .order("fecha_creacion", { ascending: false});
 
       if (error) throw error;
       
@@ -162,7 +163,8 @@ const Dashboard = () => {
             )
           )
         `)
-        .eq("hogar_id", selectedHogar);
+        .eq("hogar_id", selectedHogar)
+        .eq("activo", true);
 
       if (roomsError) throw roomsError;
 

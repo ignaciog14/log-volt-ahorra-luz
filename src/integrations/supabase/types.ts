@@ -151,6 +151,7 @@ export type Database = {
       }
       consumo_diario: {
         Row: {
+          activo: boolean
           consumo_kwh_registrado: number
           electrodomestico_id: number
           fecha: string
@@ -158,6 +159,7 @@ export type Database = {
           id: number
         }
         Insert: {
+          activo?: boolean
           consumo_kwh_registrado: number
           electrodomestico_id: number
           fecha: string
@@ -165,6 +167,7 @@ export type Database = {
           id?: number
         }
         Update: {
+          activo?: boolean
           consumo_kwh_registrado?: number
           electrodomestico_id?: number
           fecha?: string
@@ -512,6 +515,7 @@ export type Database = {
       }
       tipos_electrodomestico: {
         Row: {
+          activo: boolean
           categoria: Database["public"]["Enums"]["categoria_electrodomestico"]
           consumo_kwh_predeterminado: number
           id: number
@@ -519,6 +523,7 @@ export type Database = {
           potencia_watt: number
         }
         Insert: {
+          activo?: boolean
           categoria: Database["public"]["Enums"]["categoria_electrodomestico"]
           consumo_kwh_predeterminado: number
           id?: number
@@ -526,6 +531,7 @@ export type Database = {
           potencia_watt: number
         }
         Update: {
+          activo?: boolean
           categoria?: Database["public"]["Enums"]["categoria_electrodomestico"]
           consumo_kwh_predeterminado?: number
           id?: number
@@ -543,6 +549,15 @@ export type Database = {
         Args: { hogar_id_param: number }
         Returns: number
       }
+      user_owns_electrodomestico: {
+        Args: { _electrodomestico_id: number }
+        Returns: boolean
+      }
+      user_owns_habitacion: {
+        Args: { _habitacion_id: number }
+        Returns: boolean
+      }
+      user_owns_hogar: { Args: { _hogar_id: number }; Returns: boolean }
     }
     Enums: {
       categoria_electrodomestico:

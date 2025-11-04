@@ -66,7 +66,8 @@ const RoomDetails = () => {
         .from("habitaciones")
         .select("*, hogares(nombre)")
         .eq("id", parseInt(id))
-        .single();
+        .eq("activo", true)
+        .maybeSingle();
 
       if (roomError) throw roomError;
       setRoom(roomData);
@@ -76,6 +77,7 @@ const RoomDetails = () => {
         .from("electrodomesticos")
         .select("*, tipos_electrodomestico(*)")
         .eq("habitacion_id", parseInt(id))
+        .eq("activo", true)
         .order("nombre_personalizado");
 
       if (appliancesError) throw appliancesError;

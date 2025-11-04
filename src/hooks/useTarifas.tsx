@@ -27,7 +27,8 @@ export const useTarifas = (hogarId: number | null) => {
           .from("hogares")
           .select("comuna_id, empresa_electrica_id, empresas_electricas(nombre)")
           .eq("id", hogarId)
-          .single();
+          .eq("activo", true)
+          .maybeSingle();
 
         if (hogarError) throw hogarError;
 

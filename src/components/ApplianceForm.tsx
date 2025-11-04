@@ -64,6 +64,7 @@ const ApplianceForm = ({ habitacionId, onSuccess }: ApplianceFormProps) => {
     const { data, error } = await supabase
       .from("tipos_electrodomestico")
       .select("*")
+      .eq("activo", true)
       .order("categoria")
       .order("nombre");
 

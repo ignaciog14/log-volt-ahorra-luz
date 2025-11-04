@@ -82,7 +82,8 @@ const HomeDetails = () => {
         .from("hogares")
         .select("*")
         .eq("id", hogarIdNum)
-        .single();
+        .eq("activo", true)
+        .maybeSingle();
 
       if (hogarError) throw hogarError;
       setHogar(hogarData);
@@ -100,6 +101,7 @@ const HomeDetails = () => {
           )
         `)
         .eq("hogar_id", hogarIdNum)
+        .eq("activo", true)
         .order("nombre");
 
       if (habitacionesError) throw habitacionesError;
