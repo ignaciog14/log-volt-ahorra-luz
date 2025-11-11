@@ -234,18 +234,50 @@ const HomeDetails = () => {
     if (!id) return;
 
     try {
-      // Soft delete home - mark as inactive
+      const hogarId = parseInt(id);
+
+      // Step 1: Soft delete all appliances in all rooms of this home
+      // First get all room IDs for this home
+      const { data: rooms, error: roomsError } = await supabase
+        .from("habitaciones")
+        .select("id")
+        .eq("hogar_id", hogarId)
+        .eq("activo", true);
+
+      if (roomsError) throw roomsError;
+
+      if (rooms && rooms.length > 0) {
+        const roomIds = rooms.map(r => r.id);
+        
+        // Soft delete all appliances in these rooms
+        const { error: appliancesError } = await supabase
+          .from("electrodomesticos")
+          .update({ activo: false })
+          .in("habitacion_id", roomIds);
+
+        if (appliancesError) throw appliancesError;
+
+        // Step 2: Soft delete all rooms
+        const { error: roomsUpdateError } = await supabase
+          .from("habitaciones")
+          .update({ activo: false })
+          .eq("hogar_id", hogarId);
+
+        if (roomsUpdateError) throw roomsUpdateError;
+      }
+
+      // Step 3: Soft delete the home itself
       const { error } = await supabase
         .from("hogares")
         .update({ activo: false })
-        .eq("id", parseInt(id));
+        .eq("id", hogarId);
 
       if (error) {
         console.error("Supabase error:", error);
         throw error;
       }
 
-      toast.success("Hogar eliminado exitosamente");
+      toast.success("Hogar y todos sus datos eliminados exitosamente");
       navigate("/homes");
     } catch (error: any) {
       console.error("Delete home error:", error);
