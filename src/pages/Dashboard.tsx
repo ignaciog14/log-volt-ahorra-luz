@@ -14,6 +14,11 @@ import ConsumptionPieChart from "@/components/ConsumptionPieChart";
 import ConsumptionLineChart from "@/components/ConsumptionLineChart";
 import { useTarifas } from "@/hooks/useTarifas";
 import { CostCards } from "@/components/CostCards";
+import { useRecommendations } from "@/hooks/useRecommendations";
+import { useAlerts } from "@/hooks/useAlerts";
+import { RecommendationsCard } from "@/components/RecommendationsCard";
+import { AlertsCard } from "@/components/AlertsCard";
+import { GenerateInsightsButton } from "@/components/GenerateInsightsButton";
 
 interface Hogar {
   id: number;
@@ -53,6 +58,8 @@ const Dashboard = () => {
   const [sortRoomsBy, setSortRoomsBy] = useState<"name" | "consumption">("consumption");
   const [sortAppliancesBy, setSortAppliancesBy] = useState<"name" | "consumption">("consumption");
   const { tarifa, loading: tarifaLoading } = useTarifas(selectedHogar);
+  const { recommendations, refetch: refetchRecommendations } = useRecommendations(selectedHogar);
+  const { alerts, refetch: refetchAlerts } = useAlerts(selectedHogar);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -441,6 +448,20 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Recommendations and Alerts */}
+        <div className="grid lg:grid-cols-2 gap-6 mb-6">
+          <RecommendationsCard 
+            hogarId={selectedHogar} 
+            recommendations={recommendations} 
+            onUpdate={refetchRecommendations}
+          />
+          <AlertsCard 
+            hogarId={selectedHogar} 
+            alerts={alerts} 
+            onUpdate={refetchAlerts}
+          />
+        </div>
+
         {/* Detailed Consumption Tables */}
         <div className="grid lg:grid-cols-2 gap-6 mb-6">
           {/* Consumption by Room - Detailed */}
@@ -599,58 +620,6 @@ const Dashboard = () => {
               </Button>
             </CardContent>
           </Card>
-
-          {/* Recommendations */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recomendaciones</CardTitle>
-              <CardDescription>Sugerencias para reducir tu consumo</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {topAppliances.length > 0 ? (
-                <>
-                  <div className="p-4 rounded-lg border-2 border-warning/20 bg-warning/5">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 mt-0.5 text-warning" />
-                      <div className="flex-1">
-                        <h4 className="font-semibold mb-1">
-                          {topAppliances[0].name} es tu mayor consumidor
-                        </h4>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Este electrodoméstico representa el {topAppliances[0].percentage}% de tu consumo total
-                        </p>
-                        <p className="text-sm font-medium text-success">
-                          Considera optimizar su uso para ahorrar energía
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  {progress > 100 && (
-                    <div className="p-4 rounded-lg border-2 border-destructive/20 bg-destructive/5">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 mt-0.5 text-destructive" />
-                        <div className="flex-1">
-                          <h4 className="font-semibold mb-1">
-                            Tu consumo está {(progress - 100).toFixed(0)}% sobre tu meta
-                          </h4>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Intenta reducir el uso de electrodomésticos de alta potencia
-                          </p>
-                          <p className="text-sm font-medium text-success">
-                            Ahorro potencial: ~${Math.round((totalConsumption - monthlyGoal) * 150).toLocaleString()}/mes
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  Agrega electrodomésticos para recibir recomendaciones personalizadas
-                </p>
-              )}
-            </CardContent>
-          </Card>
         </div>
 
         {/* Quick Actions */}
@@ -681,10 +650,12 @@ const Dashboard = () => {
                 <TrendingUp className="w-6 h-6" />
                 <span>Establecer Meta</span>
               </Button>
-              <Button variant="outline" className="h-auto py-6 flex flex-col gap-2" disabled>
-                <AlertCircle className="w-6 h-6" />
-                <span>Ver Alertas</span>
-              </Button>
+              <GenerateInsightsButton 
+                onComplete={() => {
+                  refetchRecommendations();
+                  refetchAlerts();
+                }}
+              />
             </div>
           </CardContent>
         </Card>
