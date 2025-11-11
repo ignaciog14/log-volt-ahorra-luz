@@ -162,19 +162,7 @@ const Profile = () => {
         confirmPassword,
       });
 
-      // Verify current password
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user?.email || "",
-        password: validated.currentPassword,
-      });
-
-      if (signInError) {
-        toast.error("Contraseña actual incorrecta");
-        setSaving(false);
-        return;
-      }
-
-      // Update to new password
+      // Update to new password - Supabase validates the session automatically
       const { error } = await supabase.auth.updateUser({
         password: validated.newPassword,
       });

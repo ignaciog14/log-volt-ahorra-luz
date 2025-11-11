@@ -37,6 +37,7 @@ const ApplianceEditForm = ({ appliance, onSuccess, onCancel }: ApplianceEditForm
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<EditApplianceFormValues>({
     resolver: zodResolver(editApplianceSchema),
@@ -99,6 +100,8 @@ const ApplianceEditForm = ({ appliance, onSuccess, onCancel }: ApplianceEditForm
   };
 
   const currentConsumption = appliance.consumo_kwh_ajustado ?? appliance.tipos_electrodomestico?.consumo_kwh_predeterminado ?? 0;
+  const watchHours = watch('horas_uso_diarias');
+  const estimatedDaily = currentConsumption * (watchHours || appliance.horas_uso_diarias);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -154,7 +157,7 @@ const ApplianceEditForm = ({ appliance, onSuccess, onCancel }: ApplianceEditForm
       <div className="bg-muted p-4 rounded-lg">
         <p className="text-sm font-medium">Consumo Estimado Diario</p>
         <p className="text-2xl font-bold text-foreground mt-1">
-          {(currentConsumption * (parseFloat(String(document.getElementById('horas_uso_diarias') ? (document.getElementById('horas_uso_diarias') as HTMLInputElement).value : appliance.horas_uso_diarias)) || appliance.horas_uso_diarias)).toFixed(2)} kWh/día
+          {estimatedDaily.toFixed(2)} kWh/día
         </p>
       </div>
 
