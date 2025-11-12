@@ -17,10 +17,15 @@ import { CostCards } from "@/components/CostCards";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useAlerts } from "@/hooks/useAlerts";
 import { useGoals } from "@/hooks/useGoals";
+import { useComparison } from "@/hooks/useComparison";
+import { useDailyConsumption } from "@/hooks/useDailyConsumption";
 import { RecommendationsCard } from "@/components/RecommendationsCard";
 import { AlertsCard } from "@/components/AlertsCard";
 import { GenerateInsightsButton } from "@/components/GenerateInsightsButton";
 import { GoalProgressCard } from "@/components/GoalProgressCard";
+import RoomComparisonCard from "@/components/RoomComparisonCard";
+import ApplianceComparisonCard from "@/components/ApplianceComparisonCard";
+import ManualConsumptionDialog from "@/components/ManualConsumptionDialog";
 
 interface Hogar {
   id: number;
@@ -63,6 +68,8 @@ const Dashboard = () => {
   const { recommendations, refetch: refetchRecommendations } = useRecommendations(selectedHogar);
   const { alerts, refetch: refetchAlerts } = useAlerts(selectedHogar);
   const { currentGoal, refetch: refetchGoals } = useGoals(selectedHogar);
+  const { roomComparisons, applianceComparisons, loading: comparisonLoading } = useComparison(selectedHogar);
+  const { data: historicalData, loading: historicalLoading, refetch: refetchHistorical } = useDailyConsumption(selectedHogar, 30);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -450,6 +457,25 @@ const Dashboard = () => {
         </div>
 
         {/* Charts Section */}
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex gap-2">
+            <GenerateInsightsButton 
+              onComplete={() => {
+                refetchRecommendations();
+                refetchAlerts();
+              }}
+            />
+            <ManualConsumptionDialog 
+              electrodomesticos={topAppliances.map((a, idx) => ({
+                id: idx,
+                nombre_personalizado: a.name,
+                tipos_electrodomestico: { nombre: a.name }
+              }))}
+              onSuccess={refetchHistorical}
+            />
+          </div>
+        </div>
+
         <div className="grid lg:grid-cols-2 gap-6 mb-6">
           <ConsumptionBarChart 
             data={topAppliances.map(a => ({
@@ -463,10 +489,22 @@ const Dashboard = () => {
           )}
         </div>
 
+        {/* Historical Line Chart */}
+        {historicalData.length > 0 && (
+          <div className="mb-6">
+            <ConsumptionLineChart 
+              data={historicalData}
+              title="Consumo Diario - Últimos 30 Días"
+              description="Tendencia de consumo histórico"
+            />
+          </div>
+        )}
+
         {dailyConsumption.length > 0 && (
           <div className="mb-6">
             <ConsumptionLineChart 
               data={dailyConsumption}
+              title="Consumo Semanal Estimado"
               description={`Promedio 7 días: ${sevenDayAverage} kWh/día`}
             />
           </div>
@@ -496,6 +534,18 @@ const Dashboard = () => {
             hogarId={selectedHogar} 
             alerts={alerts} 
             onUpdate={refetchAlerts}
+          />
+        </div>
+
+        {/* Comparisons with National Averages */}
+        <div className="space-y-6 mb-6">
+          <RoomComparisonCard 
+            comparisons={roomComparisons}
+            loading={comparisonLoading}
+          />
+          <ApplianceComparisonCard 
+            comparisons={applianceComparisons}
+            loading={comparisonLoading}
           />
         </div>
 
