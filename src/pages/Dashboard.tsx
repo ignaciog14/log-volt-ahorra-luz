@@ -16,9 +16,11 @@ import { useTarifas } from "@/hooks/useTarifas";
 import { CostCards } from "@/components/CostCards";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useAlerts } from "@/hooks/useAlerts";
+import { useGoals } from "@/hooks/useGoals";
 import { RecommendationsCard } from "@/components/RecommendationsCard";
 import { AlertsCard } from "@/components/AlertsCard";
 import { GenerateInsightsButton } from "@/components/GenerateInsightsButton";
+import { GoalProgressCard } from "@/components/GoalProgressCard";
 
 interface Hogar {
   id: number;
@@ -60,6 +62,7 @@ const Dashboard = () => {
   const { tarifa, loading: tarifaLoading } = useTarifas(selectedHogar);
   const { recommendations, refetch: refetchRecommendations } = useRecommendations(selectedHogar);
   const { alerts, refetch: refetchAlerts } = useAlerts(selectedHogar);
+  const { currentGoal, refetch: refetchGoals } = useGoals(selectedHogar);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -416,11 +419,32 @@ const Dashboard = () => {
               <Home className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{monthlyGoal} kWh</div>
-              <Progress value={progress} className="mt-2" />
-              <p className="text-xs text-muted-foreground mt-1">
-                {progress > 100 ? `${(progress - 100).toFixed(0)}% sobre la meta` : `${(100 - progress).toFixed(0)}% para cumplir`}
-              </p>
+              {currentGoal ? (
+                <>
+                  <div className="text-3xl font-bold">
+                    {currentGoal.consumo_kwh_meta ? `${currentGoal.consumo_kwh_meta} kWh` : 
+                     currentGoal.costo_pesos_meta ? `$${currentGoal.costo_pesos_meta}` : 'Sin meta'}
+                  </div>
+                  {currentGoal.consumo_kwh_meta && (
+                    <>
+                      <Progress value={(totalConsumption / currentGoal.consumo_kwh_meta) * 100} className="mt-2" />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {totalConsumption < currentGoal.consumo_kwh_meta 
+                          ? `${((1 - totalConsumption / currentGoal.consumo_kwh_meta) * 100).toFixed(0)}% para cumplir`
+                          : `${((totalConsumption / currentGoal.consumo_kwh_meta - 1) * 100).toFixed(0)}% sobre la meta`
+                        }
+                      </p>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="text-xl font-bold text-muted-foreground">Sin meta</div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Establece una meta mensual
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -444,6 +468,19 @@ const Dashboard = () => {
             <ConsumptionLineChart 
               data={dailyConsumption}
               description={`Promedio 7 días: ${sevenDayAverage} kWh/día`}
+            />
+          </div>
+        )}
+
+        {/* Goal Progress */}
+        {selectedHogar && (
+          <div className="mb-6">
+            <GoalProgressCard 
+              hogarId={selectedHogar}
+              currentGoal={currentGoal}
+              consumoActual={totalConsumption}
+              costoActual={totalConsumption * tarifaMedia}
+              onGoalUpdated={refetchGoals}
             />
           </div>
         )}

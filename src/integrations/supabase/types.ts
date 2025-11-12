@@ -295,6 +295,8 @@ export type Database = {
           fecha_actualizacion: string | null
           fecha_creacion: string | null
           id: number
+          limite_costo_mensual: number | null
+          limite_kwh_diario: number | null
           nombre: string
           numero_personas: number | null
           usuario_id: string
@@ -308,6 +310,8 @@ export type Database = {
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
           id?: number
+          limite_costo_mensual?: number | null
+          limite_kwh_diario?: number | null
           nombre: string
           numero_personas?: number | null
           usuario_id: string
@@ -321,6 +325,8 @@ export type Database = {
           fecha_actualizacion?: string | null
           fecha_creacion?: string | null
           id?: number
+          limite_costo_mensual?: number | null
+          limite_kwh_diario?: number | null
           nombre?: string
           numero_personas?: number | null
           usuario_id?: string

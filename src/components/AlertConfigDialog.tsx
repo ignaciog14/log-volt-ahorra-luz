@@ -21,8 +21,6 @@ export const AlertConfigDialog = ({ hogarId }: AlertConfigDialogProps) => {
     try {
       setLoading(true);
       
-      // For now, we'll store this as metadata in the home
-      // In a real implementation, you might want a separate alerts_config table
       const updates: any = {};
       
       if (limiteKwh) {
@@ -33,9 +31,14 @@ export const AlertConfigDialog = ({ hogarId }: AlertConfigDialogProps) => {
         updates.limite_costo_mensual = parseFloat(limitePesos);
       }
 
-      // Note: This would require adding these columns to the hogares table
-      // For now, we'll just show the UI
-      toast.success("Configuración guardada (esta funcionalidad estará disponible próximamente)");
+      const { error } = await supabase
+        .from("hogares")
+        .update(updates)
+        .eq("id", hogarId);
+
+      if (error) throw error;
+
+      toast.success("Configuración guardada correctamente");
       setOpen(false);
     } catch (error: any) {
       toast.error("Error al guardar configuración");

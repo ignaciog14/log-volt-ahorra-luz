@@ -135,13 +135,81 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Get all homes to check consumption limits
+    // Check for custom home limits and goal exceedance
     const { data: homes, error: homesError } = await supabaseClient
       .from('hogares')
-      .select('id')
+      .select('id, limite_kwh_diario, limite_costo_mensual')
       .eq('activo', true)
 
     if (homesError) throw homesError
+
+    for (const home of homes || []) {
+      // Calculate total daily consumption for this home
+      const homeAppliances = (appliances || []).filter(a => a.habitaciones?.hogar_id === home.id)
+      const totalDailyConsumption = homeAppliances.reduce((sum, a) => {
+        const consumption = a.consumo_kwh_ajustado || a.tipos_electrodomestico?.consumo_kwh_predeterminado || 0
+        return sum + (consumption * (a.horas_uso_diarias || 0))
+      }, 0)
+
+      // Check daily kWh limit
+      if (home.limite_kwh_diario && totalDailyConsumption > home.limite_kwh_diario) {
+        const { data: existing } = await supabaseClient
+          .from('alertas')
+          .select('id')
+          .eq('hogar_id', home.id)
+          .eq('titulo', 'Límite diario de consumo superado')
+          .gte('fecha_creacion', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+          .maybeSingle()
+
+        if (!existing) {
+          alerts.push({
+            hogar_id: home.id,
+            electrodomestico_id: null,
+            titulo: 'Límite diario de consumo superado',
+            descripcion: `Tu consumo diario de ${totalDailyConsumption.toFixed(1)} kWh ha superado el límite configurado de ${home.limite_kwh_diario} kWh.`,
+            severidad: 'critical',
+            leida: false
+          })
+        }
+      }
+
+      // Check for goal exceedance (HU-10.3)
+      const currentMonth = new Date().toISOString().slice(0, 7) + '-01'
+      const { data: goal } = await supabaseClient
+        .from('metas_consumo')
+        .select('*')
+        .eq('hogar_id', home.id)
+        .eq('mes_ano', currentMonth)
+        .eq('estado', 'active')
+        .maybeSingle()
+
+      if (goal) {
+        const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
+        const currentDay = new Date().getDate()
+        const projectedMonthlyConsumption = (totalDailyConsumption / currentDay) * daysInMonth
+
+        if (goal.consumo_kwh_meta && projectedMonthlyConsumption > goal.consumo_kwh_meta) {
+          const { data: existing } = await supabaseClient
+            .from('alertas')
+            .select('id')
+            .eq('hogar_id', home.id)
+            .eq('titulo', 'Meta mensual en riesgo')
+            .gte('fecha_creacion', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            .maybeSingle()
+
+          if (!existing) {
+            alerts.push({
+              hogar_id: home.id,
+              electrodomestico_id: null,
+              titulo: 'Meta mensual en riesgo',
+              descripcion: `A tu ritmo actual, consumirás ${projectedMonthlyConsumption.toFixed(0)} kWh este mes, superando tu meta de ${goal.consumo_kwh_meta} kWh. Te recomendamos reducir el uso de electrodomésticos de alto consumo.`,
+              severidad: 'warning',
+              leida: false
+            })
+          }
+        }
+      }
+    }
 
     // Insert all alerts
     if (alerts.length > 0) {
