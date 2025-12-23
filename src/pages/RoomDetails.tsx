@@ -10,10 +10,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Trash2, Edit, Power } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Power, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import ApplianceForm from "@/components/ApplianceForm";
 import ApplianceEditForm from "@/components/ApplianceEditForm";
+import SmartScannerDialog from "@/components/SmartScannerDialog";
 
 interface Appliance {
   id: number;
@@ -203,29 +204,36 @@ const RoomDetails = () => {
               </p>
             </div>
           </div>
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Electrodoméstico
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Agregar Electrodoméstico</DialogTitle>
-                <DialogDescription>
-                  Agrega un nuevo electrodoméstico a {room.nombre}
-                </DialogDescription>
-              </DialogHeader>
-              <ApplianceForm
-                habitacionId={room.id}
-                onSuccess={() => {
-                  setShowAddDialog(false);
-                  fetchRoomAndAppliances();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+          <div className="flex gap-2">
+            <SmartScannerDialog
+              habitacionId={room.id}
+              habitacionNombre={room.nombre}
+              onSuccess={fetchRoomAndAppliances}
+            />
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Manual
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Agregar Electrodoméstico</DialogTitle>
+                  <DialogDescription>
+                    Agrega un nuevo electrodoméstico a {room.nombre}
+                  </DialogDescription>
+                </DialogHeader>
+                <ApplianceForm
+                  habitacionId={room.id}
+                  onSuccess={() => {
+                    setShowAddDialog(false);
+                    fetchRoomAndAppliances();
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
@@ -245,10 +253,17 @@ const RoomDetails = () => {
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-muted-foreground">No hay electrodomésticos en esta habitación</p>
-              <Button className="mt-4" onClick={() => setShowAddDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Primer Electrodoméstico
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center mt-4">
+                <SmartScannerDialog
+                  habitacionId={room.id}
+                  habitacionNombre={room.nombre}
+                  onSuccess={fetchRoomAndAppliances}
+                />
+                <Button variant="outline" onClick={() => setShowAddDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Manual
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
