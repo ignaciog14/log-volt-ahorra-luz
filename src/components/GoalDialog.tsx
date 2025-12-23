@@ -15,9 +15,10 @@ interface GoalDialogProps {
     costo_pesos_meta: number | null;
   } | null;
   onSaved: () => void;
+  children?: React.ReactNode;
 }
 
-export const GoalDialog = ({ hogarId, currentGoal, onSaved }: GoalDialogProps) => {
+export const GoalDialog = ({ hogarId, currentGoal, onSaved, children }: GoalDialogProps) => {
   const [open, setOpen] = useState(false);
   const [metaKwh, setMetaKwh] = useState(currentGoal?.consumo_kwh_meta?.toString() || "");
   const [metaPesos, setMetaPesos] = useState(currentGoal?.costo_pesos_meta?.toString() || "");
@@ -72,10 +73,12 @@ export const GoalDialog = ({ hogarId, currentGoal, onSaved }: GoalDialogProps) =
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Target className="h-4 w-4 mr-2" />
-          {currentGoal ? "Editar meta" : "Establecer meta"}
-        </Button>
+        {children || (
+          <Button variant="outline" size="sm">
+            <Target className="h-4 w-4 mr-2" />
+            {currentGoal ? "Editar meta" : "Establecer meta"}
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

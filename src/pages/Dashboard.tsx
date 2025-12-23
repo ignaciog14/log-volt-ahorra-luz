@@ -23,6 +23,7 @@ import { RecommendationsCard } from "@/components/RecommendationsCard";
 import { AlertsCard } from "@/components/AlertsCard";
 import { GenerateInsightsButton } from "@/components/GenerateInsightsButton";
 import { GoalProgressCard } from "@/components/GoalProgressCard";
+import { GoalDialog } from "@/components/GoalDialog";
 import RoomComparisonCard from "@/components/RoomComparisonCard";
 import ApplianceComparisonCard from "@/components/ApplianceComparisonCard";
 import ManualConsumptionDialog from "@/components/ManualConsumptionDialog";
@@ -733,10 +734,18 @@ const Dashboard = () => {
                 <Zap className="w-6 h-6" />
                 <span>Gestionar Electrodomésticos</span>
               </Button>
-              <Button variant="outline" className="h-auto py-6 flex flex-col gap-2" disabled>
-                <TrendingUp className="w-6 h-6" />
-                <span>Establecer Meta</span>
-              </Button>
+              {selectedHogar && (
+                <GoalDialog 
+                  hogarId={selectedHogar} 
+                  currentGoal={currentGoal} 
+                  onSaved={refetchGoals}
+                >
+                  <Button variant="outline" className="h-auto py-6 flex flex-col gap-2 w-full">
+                    <TrendingUp className="w-6 h-6" />
+                    <span>{currentGoal ? "Editar Meta" : "Establecer Meta"}</span>
+                  </Button>
+                </GoalDialog>
+              )}
               <GenerateInsightsButton 
                 onComplete={() => {
                   refetchRecommendations();
