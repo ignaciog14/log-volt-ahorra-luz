@@ -325,11 +325,29 @@ const Dashboard = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-            <p className="text-muted-foreground">
-              {hogares.find(h => h.id === selectedHogar)?.nombre || ""} - Enero 2025
-            </p>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            {hogares.length > 1 ? (
+              <Select
+                value={selectedHogar?.toString() ?? ""}
+                onValueChange={(val) => setSelectedHogar(Number(val))}
+              >
+                <SelectTrigger className="w-64 mt-1">
+                  <SelectValue placeholder="Selecciona un hogar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hogares.map((h) => (
+                    <SelectItem key={h.id} value={h.id.toString()}>
+                      {h.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="text-muted-foreground">
+                {hogares.find(h => h.id === selectedHogar)?.nombre || ""}
+              </p>
+            )}
           </div>
           <div className="flex gap-3">
             <Button onClick={() => navigate("/homes")}>
