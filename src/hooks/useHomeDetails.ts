@@ -71,6 +71,7 @@ export function useHomeDetails(id: string | undefined): UseHomeDetailsResult {
           )
         `)
         .eq("hogar_id", hogarId)
+        .eq("activo", true)
         .order("nombre");
 
       if (habitacionesError) throw habitacionesError;
