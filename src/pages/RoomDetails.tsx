@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAppliances } from "@/hooks/useAppliances";
+import type { Appliance } from "@/hooks/useAppliances";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -14,79 +16,29 @@ import { toast } from "sonner";
 import ApplianceForm from "@/components/ApplianceForm";
 import ApplianceEditForm from "@/components/ApplianceEditForm";
 
-interface Appliance {
-  id: number;
-  tipo_id: number;
-  nombre_personalizado: string | null;
-  horas_uso_diarias: number;
-  consumo_kwh_ajustado: number | null;
-  activo: boolean;
-  es_personalizado: boolean;
-  tipos_electrodomestico?: {
-    nombre: string;
-    consumo_kwh_predeterminado: number;
-    potencia_watt: number;
-  };
-}
-
-interface Room {
-  id: number;
-  nombre: string;
-  tipo: string;
-  hogar_id: number;
-  hogares?: {
-    nombre: string;
-  };
-}
-
 const RoomDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [room, setRoom] = useState<Room | null>(null);
-  const [appliances, setAppliances] = useState<Appliance[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { room, appliances, loading, fetchRoomAndAppliances } = useAppliances(id);
   const [sortBy, setSortBy] = useState<"nombre" | "consumo">("nombre");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingAppliance, setEditingAppliance] = useState<Appliance | null>(null);
 
   useEffect(() => {
-    if (user && id) {
-      fetchRoomAndAppliances();
-    }
-  }, [user, id]);
+    if (!user) navigate("/auth");
+  }, [user, navigate]);
 
-  const fetchRoomAndAppliances = async () => {
-    if (!id) return;
-    
-    setLoading(true);
-    try {
-      // Fetch room details
-      const { data: roomData, error: roomError } = await supabase
-        .from("habitaciones")
-        .select("*, hogares(nombre)")
-        .eq("id", parseInt(id))
-        .single();
+  const getApplianceName = (appliance: Appliance) =>
+    appliance.es_personalizado && appliance.nombre_personalizado
+      ? appliance.nombre_personalizado
+      : appliance.tipos_electrodomestico?.nombre || "Sin nombre";
 
-      if (roomError) throw roomError;
-      setRoom(roomData);
+  const getConsumption = (appliance: Appliance) =>
+    appliance.consumo_kwh_ajustado ?? appliance.tipos_electrodomestico?.consumo_kwh_predeterminado ?? 0;
 
-      // Fetch appliances
-      const { data: appliancesData, error: appliancesError } = await supabase
-        .from("electrodomesticos")
-        .select("*, tipos_electrodomestico(*)")
-        .eq("habitacion_id", parseInt(id))
-        .order("nombre_personalizado");
-
-      if (appliancesError) throw appliancesError;
-      setAppliances(appliancesData || []);
-    } catch (error: any) {
-      toast.error(error.message || "Error al cargar los datos");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const getDailyEstimate = (appliance: Appliance) =>
+    (getConsumption(appliance) * appliance.horas_uso_diarias).toFixed(2);
 
   const handleToggleActive = async (applianceId: number, currentStatus: boolean) => {
     try {
@@ -94,10 +46,8 @@ const RoomDetails = () => {
         .from("electrodomesticos")
         .update({ activo: !currentStatus })
         .eq("id", applianceId);
-
       if (error) throw error;
 
-      // Log the change
       await supabase.from("cambios_electrodomestico").insert({
         electrodomestico_id: applianceId,
         usuario_id: user?.id,
@@ -108,15 +58,15 @@ const RoomDetails = () => {
 
       toast.success(currentStatus ? "Electrodoméstico desactivado" : "Electrodoméstico activado");
       fetchRoomAndAppliances();
-    } catch (error: any) {
-      toast.error(error.message || "Error al cambiar el estado");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Error al cambiar el estado";
+      toast.error(message);
       console.error(error);
     }
   };
 
   const handleDelete = async (applianceId: number) => {
     try {
-      // Check if has consumption history
       const { data: historyData } = await supabase
         .from("consumo_diario")
         .select("id")
@@ -127,44 +77,26 @@ const RoomDetails = () => {
         toast.info("Este electrodoméstico tiene historial. Se marcará como inactivo.");
       }
 
-      // Soft delete - mark as inactive
       const { error } = await supabase
         .from("electrodomesticos")
         .update({ activo: false })
         .eq("id", applianceId);
-
       if (error) throw error;
 
       toast.success("Electrodoméstico eliminado");
       fetchRoomAndAppliances();
-    } catch (error: any) {
-      toast.error(error.message || "Error al eliminar");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Error al eliminar";
+      toast.error(message);
       console.error(error);
     }
   };
 
-  const getApplianceName = (appliance: Appliance) => {
-    return appliance.es_personalizado && appliance.nombre_personalizado
-      ? appliance.nombre_personalizado
-      : appliance.tipos_electrodomestico?.nombre || "Sin nombre";
-  };
-
-  const getConsumption = (appliance: Appliance) => {
-    return appliance.consumo_kwh_ajustado ?? appliance.tipos_electrodomestico?.consumo_kwh_predeterminado ?? 0;
-  };
-
-  const getDailyEstimate = (appliance: Appliance) => {
-    const consumption = getConsumption(appliance);
-    return (consumption * appliance.horas_uso_diarias).toFixed(2);
-  };
-
-  const sortedAppliances = [...appliances].sort((a, b) => {
-    if (sortBy === "nombre") {
-      return getApplianceName(a).localeCompare(getApplianceName(b));
-    } else {
-      return getConsumption(b) - getConsumption(a);
-    }
-  });
+  const sortedAppliances = [...appliances].sort((a, b) =>
+    sortBy === "nombre"
+      ? getApplianceName(a).localeCompare(getApplianceName(b))
+      : getConsumption(b) - getConsumption(a)
+  );
 
   if (loading) {
     return (
@@ -195,7 +127,8 @@ const RoomDetails = () => {
               <p className="text-muted-foreground">
                 <Link to={`/homes/${room.hogar_id}`} className="hover:underline">
                   {room.hogares?.nombre}
-                </Link> • {room.tipo}
+                </Link>{" "}
+                • {room.tipo}
               </p>
             </div>
           </div>
@@ -209,16 +142,11 @@ const RoomDetails = () => {
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Agregar Electrodoméstico</DialogTitle>
-                <DialogDescription>
-                  Agrega un nuevo electrodoméstico a {room.nombre}
-                </DialogDescription>
+                <DialogDescription>Agrega un nuevo electrodoméstico a {room.nombre}</DialogDescription>
               </DialogHeader>
               <ApplianceForm
                 habitacionId={room.id}
-                onSuccess={() => {
-                  setShowAddDialog(false);
-                  fetchRoomAndAppliances();
-                }}
+                onSuccess={() => { setShowAddDialog(false); fetchRoomAndAppliances(); }}
               />
             </DialogContent>
           </Dialog>
@@ -226,7 +154,7 @@ const RoomDetails = () => {
 
         <div className="flex items-center gap-4">
           <Label htmlFor="sort">Ordenar por:</Label>
-          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as "nombre" | "consumo")}>
             <SelectTrigger className="w-[200px]">
               <SelectValue />
             </SelectTrigger>
@@ -259,14 +187,12 @@ const RoomDetails = () => {
                         {appliance.tipos_electrodomestico?.potencia_watt}W
                       </CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={appliance.activo}
-                          onCheckedChange={() => handleToggleActive(appliance.id, appliance.activo)}
-                        />
-                        <Power className={`h-4 w-4 ${appliance.activo ? "text-green-500" : "text-muted-foreground"}`} />
-                      </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={appliance.activo}
+                        onCheckedChange={() => handleToggleActive(appliance.id, appliance.activo)}
+                      />
+                      <Power className={`h-4 w-4 ${appliance.activo ? "text-green-500" : "text-muted-foreground"}`} />
                     </div>
                   </div>
                 </CardHeader>
@@ -291,7 +217,12 @@ const RoomDetails = () => {
                   <div className="flex gap-2 pt-2">
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditingAppliance(appliance)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setEditingAppliance(appliance)}
+                        >
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
                         </Button>
@@ -306,10 +237,7 @@ const RoomDetails = () => {
                         {editingAppliance && (
                           <ApplianceEditForm
                             appliance={editingAppliance}
-                            onSuccess={() => {
-                              setEditingAppliance(null);
-                              fetchRoomAndAppliances();
-                            }}
+                            onSuccess={() => { setEditingAppliance(null); fetchRoomAndAppliances(); }}
                             onCancel={() => setEditingAppliance(null)}
                           />
                         )}
