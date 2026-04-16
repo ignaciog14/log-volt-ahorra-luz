@@ -49,14 +49,26 @@ export const useTarifas = (hogarId: number | null) => {
         const tarifaKey = resolverTarifaKey(empresaNombre);
         const bt1 = TARIFAS_BT1[tarifaKey] ?? TARIFAS_BT1.default;
 
-        if (!hogarData?.comuna_id || !hogarData?.empresa_electrica_id) {
-          // Sin tarifa configurada → usar BT1 por defecto
+        // Sin empresa → no podemos inferir nada
+        if (!hogarData?.empresa_electrica_id) {
+          setTarifa({
+            tarifa_punta_pesos_kwh: Math.round(TARIFAS_BT1.default.preciokWh_invierno * 1.19),
+            tarifa_valle_pesos_kwh: Math.round(TARIFAS_BT1.default.preciokWh_normal * 1.19),
+            tarifa_media_pesos_kwh: Math.round(TARIFAS_BT1.default.preciokWh_normal * 1.19),
+            empresa_nombre: "Sin empresa configurada",
+            tarifaKey: "default",
+          });
+          return;
+        }
+
+        // Empresa conocida pero sin comuna → usar BT1 de esa empresa directamente
+        if (!hogarData?.comuna_id) {
           setTarifa({
             tarifa_punta_pesos_kwh: Math.round(bt1.preciokWh_invierno * 1.19),
             tarifa_valle_pesos_kwh: Math.round(bt1.preciokWh_normal * 1.19),
             tarifa_media_pesos_kwh: Math.round(bt1.preciokWh_normal * 1.19),
-            empresa_nombre: "Tarifa referencial",
-            tarifaKey: "default",
+            empresa_nombre: empresaNombre,
+            tarifaKey,
           });
           return;
         }
