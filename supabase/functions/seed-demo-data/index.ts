@@ -181,13 +181,236 @@ const ESCENARIOS = [
   },
 ];
 
+// ── Tipos para escenario custom (formato Gemini) ─────────────────────────────
+
+interface CustomAppliance {
+  nombre: string;
+  tipo_buscar: string;
+  horas: number;
+  kwh_dia: number;
+  categoria: string;
+  nota?: string;
+}
+
+interface CustomRoom {
+  nombre: string;
+  tipo: string;
+  electrodomesticos: CustomAppliance[];
+}
+
+interface CustomScenario {
+  hogar: {
+    nombre: string;
+    direccion: string;
+    area_m2: number;
+    numero_personas: number;
+    empresa_nombre: string;
+    meta_kwh: number;
+    ultima_boleta_clp?: number;
+  };
+  habitaciones: CustomRoom[];
+}
+
+const TIPO_HAB_MAP: Record<string, string> = {
+  living_dormitorio: "living",
+  salon: "living",
+  "living-comedor": "living",
+  bano: "bano",
+  baño: "bano",
+  lavanderia: "lavanderia",
+  lavandería: "lavanderia",
+  estudio: "estudio",
+  garage: "garage",
+  patio: "patio",
+};
+
+function mapTipoHab(tipo: string): string {
+  const lower = tipo.toLowerCase();
+  if (TIPO_HAB_MAP[lower]) return TIPO_HAB_MAP[lower];
+  const validos = ["cocina","dormitorio","bano","living","comedor","lavanderia","estudio","garage","patio","otro"];
+  return validos.includes(lower) ? lower : "otro";
+}
+
+/** Genera alertas y recomendaciones automáticas según el contenido del hogar */
+function generarInsights(scenario: CustomScenario) {
+  const alertas: { titulo: string; descripcion: string; severidad: string }[] = [];
+  const recomendaciones: { titulo: string; descripcion: string; prioridad: string; ahorro: number }[] = [];
+
+  const totalKwh = scenario.hogar.meta_kwh;
+  const allAppliances = scenario.habitaciones.flatMap(h => h.electrodomesticos);
+
+  // Alerta límite invierno
+  if (totalKwh > 430) {
+    const exceso = totalKwh - 430;
+    alertas.push({
+      titulo: "Consumo supera el límite de invierno BT1",
+      descripcion: `Consumes ${totalKwh} kWh/mes estimados. En junio–septiembre, los ${Math.round(exceso)} kWh extras tienen recargo de $156/kWh (vs $122 normal). Eso es ~$${Math.round(exceso * (156.3 - 121.8) * 1.19).toLocaleString()} extra en boleta.`,
+      severidad: "critical",
+    });
+  }
+
+  // Detectar refrigerador antiguo
+  const frigosAntiguos = allAppliances.filter(a => a.tipo_buscar.includes("antiguo") || a.kwh_dia > 5.5);
+  if (frigosAntiguos.length > 0) {
+    const consumoExtra = frigosAntiguos.reduce((s, a) => s + (a.kwh_dia - 2.16) * 30, 0);
+    const ahorroCLP = Math.round(consumoExtra * 121.8 * 1.19);
+    recomendaciones.push({
+      titulo: `Reemplaza el${frigosAntiguos.length > 1 ? " los" : ""} refrigerador${frigosAntiguos.length > 1 ? "es" : ""} antiguo${frigosAntiguos.length > 1 ? "s" : ""}`,
+      descripcion: `Un refrigerador de más de 10 años consume hasta 3× más que uno A+++ actual. Reemplazarlo puede ahorrarte ~${Math.round(consumoExtra)} kWh/mes (~$${ahorroCLP.toLocaleString()}/mes en boleta).`,
+      prioridad: "high",
+      ahorro: ahorroCLP,
+    });
+    alertas.push({
+      titulo: "Refrigerador antiguo detectado — alto consumo base",
+      descripcion: `${frigosAntiguos.map(a => a.nombre).join(", ")} consume estimado ${frigosAntiguos.reduce((s, a) => s + a.kwh_dia, 0).toFixed(1)} kWh/día = ${frigosAntiguos.reduce((s, a) => s + a.kwh_dia * 30, 0).toFixed(0)} kWh/mes solo en refrigeración.`,
+      severidad: "warning",
+    });
+  }
+
+  // Múltiples TVs
+  const tvs = allAppliances.filter(a => a.tipo_buscar.includes("tv") || a.tipo_buscar.includes("tele"));
+  if (tvs.length > 0 && tvs.reduce((s, a) => s + a.kwh_dia, 0) > 0.8) {
+    recomendaciones.push({
+      titulo: "Activa el apagado automático en televisores",
+      descripcion: "Configura el sleep timer en todos los TVs. Un televisor en standby consume hasta 0.5W — con 3 unidades son ~1 kWh/mes innecesario.",
+      prioridad: "low",
+      ahorro: Math.round(0.5 * 3 * 24 * 30 / 1000 * 121.8 * 1.19),
+    });
+  }
+
+  // Si hay dos o más refrigeradores
+  const fridges = allAppliances.filter(a => a.tipo_buscar.includes("refriger") || a.tipo_buscar.includes("fridge"));
+  if (fridges.length >= 2) {
+    alertas.push({
+      titulo: "Dos refrigeradores activos",
+      descripcion: `Tienes ${fridges.length} refrigeradores funcionando simultáneamente (${fridges.reduce((s,a) => s + a.kwh_dia * 30, 0).toFixed(0)} kWh/mes en total). Si uno es de respaldo, apagarlo puede ahorrar significativamente.`,
+      severidad: "info",
+    });
+  }
+
+  return { alertas, recomendaciones };
+}
+
+// ── Función compartida para seed de un escenario ──────────────────────────────
+
+async function seedEscenarioCustom(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  scenario: CustomScenario,
+  seedOffset: number
+): Promise<string> {
+  const { data: empresaData } = await supabase
+    .from("empresas_electricas")
+    .select("id")
+    .ilike("nombre", `%${scenario.hogar.empresa_nombre.split(" ")[0]}%`)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: hogar, error: hogarError } = await supabase
+    .from("hogares")
+    .insert({
+      usuario_id: userId,
+      nombre: scenario.hogar.nombre,
+      direccion: scenario.hogar.direccion,
+      area_m2: scenario.hogar.area_m2,
+      numero_personas: scenario.hogar.numero_personas,
+      empresa_electrica_id: empresaData?.id ?? null,
+      limite_kwh_diario: Math.round(scenario.hogar.meta_kwh / 30),
+      activo: true,
+    })
+    .select()
+    .single();
+
+  if (hogarError) throw new Error(`hogar: ${hogarError.message}`);
+
+  const mesActual = new Date().toISOString().slice(0, 7);
+  await supabase.from("metas_consumo").insert({
+    hogar_id: hogar.id,
+    mes_ano: mesActual,
+    consumo_kwh_meta: scenario.hogar.meta_kwh,
+    costo_pesos_meta: Math.round(scenario.hogar.meta_kwh * 143),
+    estado: "active",
+  });
+
+  const { alertas, recomendaciones } = generarInsights(scenario);
+
+  for (const alerta of alertas) {
+    await supabase.from("alertas").insert({ hogar_id: hogar.id, ...alerta, leida: false });
+  }
+
+  let orden = 1;
+  let offset = seedOffset;
+  for (const habDef of scenario.habitaciones) {
+    const tipoHab = mapTipoHab(habDef.tipo);
+    const { data: hab, error: habError } = await supabase
+      .from("habitaciones")
+      .insert({ hogar_id: hogar.id, nombre: habDef.nombre, tipo: tipoHab, orden: orden++, activo: true })
+      .select()
+      .single();
+
+    if (habError) throw new Error(`habitacion: ${habError.message}`);
+
+    for (const app of habDef.electrodomesticos) {
+      const { data: tipoData } = await supabase
+        .from("tipos_electrodomestico")
+        .select("id")
+        .ilike("nombre", `%${app.tipo_buscar.replace(/_/g, " ").split("_")[0]}%`)
+        .eq("activo", true)
+        .limit(1)
+        .maybeSingle();
+
+      const { data: electro, error: electroError } = await supabase
+        .from("electrodomesticos")
+        .insert({
+          habitacion_id: hab.id,
+          tipo_id: tipoData?.id ?? null,
+          nombre_personalizado: app.nombre,
+          es_personalizado: true,
+          horas_uso_diarias: app.horas,
+          consumo_kwh_ajustado: app.kwh_dia,
+          activo: true,
+        })
+        .select()
+        .single();
+
+      if (electroError) throw new Error(`electrodomestico: ${electroError.message}`);
+
+      const consumoRows = Array.from({ length: 30 }, (_, dia) => ({
+        electrodomestico_id: electro.id,
+        fecha: fechaHaceNDias(29 - dia),
+        horas_uso_registradas: app.horas,
+        consumo_kwh_registrado: parseFloat(
+          variarConsumo(app.kwh_dia, dia, app.categoria.toLowerCase(), offset++).toFixed(3)
+        ),
+        activo: true,
+      }));
+
+      await supabase.from("consumo_diario").insert(consumoRows);
+    }
+  }
+
+  for (const rec of recomendaciones) {
+    await supabase.from("recomendaciones").insert({
+      hogar_id: hogar.id,
+      titulo: rec.titulo,
+      descripcion: rec.descripcion,
+      prioridad: rec.prioridad,
+      ahorro_potencial_pesos: rec.ahorro,
+      estado: "pending",
+    });
+  }
+
+  return `✓ ${scenario.hogar.nombre} (id=${hogar.id})`;
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { user_id } = await req.json() as { user_id: string };
+    const body = await req.json() as { user_id: string; scenario?: CustomScenario };
+    const { user_id, scenario } = body;
     if (!user_id) return new Response(JSON.stringify({ error: "user_id requerido" }), { status: 400, headers: corsHeaders });
 
     const supabase = createClient(
@@ -195,6 +418,15 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false } }
     );
+
+    // Modo custom: seed de un escenario personalizado (formato Gemini)
+    if (scenario) {
+      const result = await seedEscenarioCustom(supabase, user_id, scenario, 9999);
+      return new Response(
+        JSON.stringify({ ok: true, hogares_creados: [result] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const results: string[] = [];
     let seedOffset = 0;
