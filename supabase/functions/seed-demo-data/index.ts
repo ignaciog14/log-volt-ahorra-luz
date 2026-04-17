@@ -294,7 +294,7 @@ function generarInsights(scenario: CustomScenario) {
 // ── Función compartida para seed de un escenario ──────────────────────────────
 
 async function seedEscenarioCustom(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   scenario: CustomScenario,
   seedOffset: number
