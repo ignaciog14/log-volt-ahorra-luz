@@ -294,7 +294,7 @@ function generarInsights(scenario: CustomScenario) {
 // ── Función compartida para seed de un escenario ──────────────────────────────
 
 async function seedEscenarioCustom(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   scenario: CustomScenario,
   seedOffset: number
@@ -413,7 +413,7 @@ Deno.serve(async (req) => {
     const { user_id, scenario } = body;
     if (!user_id) return new Response(JSON.stringify({ error: "user_id requerido" }), { status: 400, headers: corsHeaders });
 
-    const supabase = createClient(
+    const supabase: any = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false } }
