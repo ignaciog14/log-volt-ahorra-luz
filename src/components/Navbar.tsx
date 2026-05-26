@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Home, LogOut, Users, Moon, Sun } from "lucide-react";
+import { Home, LogOut, Users, Moon, Sun, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "next-themes";
@@ -34,6 +34,12 @@ export const Navbar = ({ showAuthButtons = true }: NavbarProps) => {
                 <Link to="/homes">
                   <Home className="w-4 h-4 mr-2" />
                   Hogares
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link to="/consejos">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Consejos
                 </Link>
               </Button>
               <Button variant="ghost" asChild>
